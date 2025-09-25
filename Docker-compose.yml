@@ -2,7 +2,6 @@ services:
   postgres:
     image: postgres:16.4
     container_name: aggregator.postgres
-    hostname: postgres
     env_file:
       - .env.local
     environment:
@@ -13,12 +12,28 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
     ports:
-      - ${POSTGRES_PORT}:5432
-    volumes:
-      - .:/docker-entrypoint-initdb.d
+      - 5432:5432
+#    volumes:
+#      - ./initdb:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD-SHELL", "sh -c 'pg_isready -U voodooman -d aggregator'" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 60s
       retries: 5
       start_period: 30s
+
+  # Универсальный сервис для goose
+  goose:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    volumes:
+      - ./migrations:/app/migrations
+    environment:
+      - GOOSE_DRIVER=${GOOSE_DRIVER}
+      - GOOSE_DBSTRING=${POSTGRES_DSN}
+    working_dir: /app
+    # Без команды по умолчанию — она будет передаваться при запуске
+
+volumes:
+  postgres_data:

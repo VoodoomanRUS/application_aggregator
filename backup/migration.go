@@ -1,4 +1,4 @@
-package migrations
+package backup
 
 import (
 	"context"
@@ -132,6 +132,7 @@ func (m *Migrator) Down() error {
 	if migration.Down == nil {
 		return fmt.Errorf("migration %s does not suppoer rollback", lastRecord.Version)
 	}
+
 	fmt.Printf("Rollbacking migration %s %s\n", migration.Version, migration.Description)
 
 	tx := m.db.Begin()
@@ -142,6 +143,11 @@ func (m *Migrator) Down() error {
 	if err := migration.Down(tx); err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to rollback migration %s: %w", migration.Version, err)
+	}
+
+	if err := tx.Where("version = ?", lastRecord.Version).Delete(&MigrationRecord{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to remove migration record %s: %w", migration.Version, err)
 	}
 
 	if err := tx.Commit().Error; err != nil {

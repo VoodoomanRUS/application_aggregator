@@ -1,4 +1,4 @@
-package migrations
+package backup
 
 import (
 	"application_aggregator/internal/models"
