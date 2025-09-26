@@ -1,4 +1,11 @@
-# .PHONY — указывает, что цели не являются файлами
+package main
+
+import (
+	"os"
+	"text/template"
+)
+
+const makefileTemplate = `# .PHONY — указывает, что цели не являются файлами
 .PHONY: db-build db-up db-down goose  
 .PHONY: migration-status migration-up migration-up-by-one migration-up-to migration-down migration-down-to migration-redo 
 .PHONY: migration-create-sql migration-create-go create-core debug-env
@@ -120,3 +127,19 @@ migrate-check:
 	@docker compose --env-file .env.test -f docker-compose.test.yml run --rm goose-test goose -dir ./migrations up
 	@echo "✅ Валидация пройдена! Все миграции идемпотентны."
 	@docker compose --env-file .env.test -f docker-compose.test.yml down -v
+`
+
+func main() {
+	tmpl := template.Must(template.New("makefile").Parse(makefileTemplate))
+	f, err := os.Create("../Makefile")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	err = tmpl.Execute(f, nil)
+	if err != nil {
+		panic(err)
+	}
+	println("✅ Makefile успешно сгенерирован!")
+}

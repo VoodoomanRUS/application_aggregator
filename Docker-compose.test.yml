@@ -1,0 +1,31 @@
+services:
+  postgres-test:
+    image: postgres:16.4
+    container_name: aggregator.postgres-test
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"  # ← внешний порт 5433, чтобы не конфликтовать с основной БД
+    volumes:
+      - postgres_test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  goose-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    volumes:
+      - ./migrations:/app/migrations
+    environment:
+      - GOOSE_DRIVER=${GOOSE_DRIVER}
+      - GOOSE_DBSTRING=${POSTGRES_DSN}
+    working_dir: /app
+
+volumes:
+  postgres_test:

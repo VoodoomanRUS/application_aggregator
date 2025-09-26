@@ -1,7 +1,7 @@
 package backup
 
 import (
-	"application_aggregator/internal/models"
+	"application_aggregator/backup/models"
 
 	"gorm.io/gorm"
 )
