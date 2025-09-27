@@ -1,50 +1,70 @@
 package main
 
+import (
+	_ "application_aggregator/docs"
+	"application_aggregator/internal/handler"
+	"application_aggregator/internal/repository/postgres"
+	"application_aggregator/internal/service"
+	"database/sql"
+	"os/signal"
+	"syscall"
+
+	"log"
+	"os"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+// @title Aggregator API
+// @version 1.0
+// @description API for managing organizations.
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http
 func main() {
-	//if err := godotenv.Load(".env.local"); err != nil {
-	//	log.Printf("Failed to load .env.local.\n")
-	//}
-	//dbPath := os.Getenv("DB_DSN")
-	//if dbPath == "" {
-	//	log.Fatal("DB_DSN environment variable not set!")
-	//}
-	//fmt.Println(" Connecting with DSN:", dbPath)
-	//db, err := gorm.Open(postgres.Open(dbPath), &gorm.Config{})
-	//if err != nil {
-	//	log.Fatal("❌ failed to connect database: ", err)
-	//}
-	//
-	//m := backup.NewMigrator(db)
-	//m.AddMigration(backup.CreateOrganizationTable())
-	//m.AddMigration(backup.CreateLoanApplicationTable())
-	//
-	//if len(os.Args) < 2 {
-	//	log.Fatal("Usage: go run main.go [up|down|status]")
-	//}
-	//
-	//cmd := os.Args[1]
-	//
-	//switch cmd {
-	//case "up":
-	//	if err := m.Up(); err != nil {
-	//		log.Fatal("❌ Migration UP failed: ", err)
-	//	}
-	//	fmt.Println("✅ All migrations applied successfully!")
-	//
-	//case "down":
-	//	if err := m.Down(); err != nil {
-	//		log.Fatal("❌ Migration DOWN failed: ", err)
-	//	}
-	//	fmt.Println("✅ Last migration rolled back successfully!")
-	//
-	//case "status":
-	//	if err := m.Status(context.Background()); err != nil {
-	//		log.Fatal("❌ Status check failed: ", err)
-	//	}
-	//
-	//default:
-	//	log.Fatal("Unknown command: ", cmd)
-	//}
-	//DB_DSN="host=localhost user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} port=${POSTGRES_PORT} sslmode=${POSTGRES_SSL_MODE}"
+	//1. Подключение к БД
+	db, err := sql.Open("postgres", os.Getenv("POSTGRES_DSN"))
+	if err != nil {
+		log.Fatal("Failed to connect to DB:", err)
+	}
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatal("Failed to close DB:", err)
+		}
+	}(db)
+
+	//2. Репозиторий
+	orgRepo := postgres.NewOrganizationRepository(db)
+
+	//3. Сервис
+	orgService := service.NewOrganizationService(orgRepo)
+
+	//4. Хендлер
+	orgHandler := handler.NewOrganizationHandler(orgService)
+
+	//5. Роутер
+	r := gin.Default()
+	api := r.Group("/api/v1")
+	api.POST("organizations", orgHandler.CreateOrganization)
+
+	// ЭТА СТРОКА ДОЛЖНА БЫТЬ ПОСЛЕ ВСЕХ ДРУГИХ МАРШРУТОВ!
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	//6. Запуск
+	log.Println("Server started on port 8080")
+	err = r.Run(":8080")
+	if err != nil {
+		return
+	}
+
+	//7. Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
 
 }

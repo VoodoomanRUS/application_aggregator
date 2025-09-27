@@ -1,10 +1,10 @@
 -- +goose Up
 -- +goose StatementBegin
-
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS organizations(
-    ID serial primary key,
-    uuid uuid not null unique default gen_random_uuid(),
-    name varchar(255) unique
+    uuid uuid not null unique default gen_random_uuid() primary key,
+    name varchar(255),
+    email varchar(255) unique
 );
 -- +goose StatementEnd
 

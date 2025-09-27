@@ -1,0 +1,68 @@
+basePath: /api/v1
+definitions:
+  handler.OrganizationRequest:
+    description: Input data for creating an organization
+    properties:
+      email:
+        description: '@Description Email of the organization'
+        type: string
+      name:
+        description: '@Description Name of the organization'
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  model.Organization:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for managing organizations.
+  title: Aggregator API
+  version: "1.0"
+paths:
+  /organizations:
+    post:
+      consumes:
+      - application/json
+      description: Create a new organization with name and email
+      parameters:
+      - description: Organization data
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/handler.OrganizationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Organization'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create organization
+      tags:
+      - organizations
+schemes:
+- http
+swagger: "2.0"
